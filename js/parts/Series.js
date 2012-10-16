@@ -1497,10 +1497,17 @@ Series.prototype = {
 		var chart = this.chart,
 			sharedClipKey = this.sharedClipKey,
 			group = this.group,
-			trackerGroup = this.trackerGroup;
-			
+			trackerGroup = this.trackerGroup,
+			clipRect;
+
 		if (group && this.options.clip !== false) {
-			group.clip(chart.clipRect);
+			if (this.yAxis.clipRect) {
+				clipRect = this.yAxis.clipRect;
+			} else {
+				clipRect = chart.clipRect;
+			}
+			group.clip(clipRect);
+
 			this.markerGroup.clip(); // no clip
 		}
 		
@@ -1550,7 +1557,8 @@ Series.prototype = {
 				graphic = point.graphic;
 				pointMarkerOptions = point.marker || {};
 				enabled = (seriesMarkerOptions.enabled && pointMarkerOptions.enabled === UNDEFINED) || pointMarkerOptions.enabled;
-				isInside = chart.isInsidePlot(plotX, plotY, chart.inverted);
+				isInside = series.yAxis.isInsideClip(plotX, plotY) &&
+							chart.isInsidePlot(plotX, plotY, chart.inverted);
 				
 				// only draw the point if y is defined
 				if (enabled && plotY !== UNDEFINED && !isNaN(plotY)) {
@@ -2167,8 +2175,8 @@ Series.prototype = {
 		}
 		// Place it on first and subsequent (redraw) calls
 		group.translate(
-			xAxis ? xAxis.left : chart.plotLeft, 
-			yAxis ? yAxis.top : chart.plotTop
+			chart.inverted ? (yAxis ? yAxis.left : chart.plotLeft) : (xAxis ? xAxis.left : chart.plotLeft),
+			chart.inverted ? (xAxis ? xAxis.top : chart.plotTop) : (yAxis ? yAxis.top : chart.plotTop)
 		);
 		
 		return group;
@@ -2188,7 +2196,8 @@ Series.prototype = {
 			visibility = series.visible ? VISIBLE : HIDDEN,
 			zIndex = options.zIndex,
 			hasRendered = series.hasRendered,
-			chartSeriesGroup = chart.seriesGroup;
+			chartSeriesGroup = chart.seriesGroup,
+			clipRect;
 		
 		// the group
 		group = series.plotGroup(
@@ -2240,7 +2249,15 @@ Series.prototype = {
 		
 		// Initial clipping, must be defined after inverting groups for VML
 		if (options.clip !== false && !series.sharedClipKey && !hasRendered) {
-			group.clip(chart.clipRect);
+			if (series.yAxis.clipRect) {
+				clipRect = series.yAxis.clipRect;
+			} else {
+				clipRect = chart.clipRect;
+			}
+			group.clip(clipRect);
+			if (this.trackerGroup) {
+				this.trackerGroup.clip(clipRect);
+			}
 		}
 
 		// Run the animation
