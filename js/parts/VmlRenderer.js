@@ -358,10 +358,12 @@ var VMLElement = {
 		var wrapper = this,
 			clipMembers,
 			element = wrapper.element,
-			parentNode = element.parentNode;
+			parentNode = element.parentNode,
+			cssRet;
 
 		if (clipRect) {
 			clipMembers = clipRect.members;
+			erase(clipMembers, wrapper); // Ensure unique list of elements (#1258)
 			clipMembers.push(wrapper);
 			wrapper.destroyClip = function () {
 				erase(clipMembers, wrapper);
@@ -370,12 +372,16 @@ var VMLElement = {
 			if (parentNode && parentNode.className === 'highcharts-tracker' && !docMode8) {
 				css(element, { visibility: HIDDEN });
 			}
-			
-		} else if (wrapper.destroyClip) {
-			wrapper.destroyClip();
+			cssRet = clipRect.getCSS(wrapper);
+
+		} else {
+			if (wrapper.destroyClip) {
+				wrapper.destroyClip();
+			}
+			cssRet = { clip: docMode8 ? 'inherit' : 'rect(auto)' }; // #1214
 		}
-		
-		return wrapper.css(clipRect ? clipRect.getCSS(wrapper) : { clip: 'inherit' });	
+
+		return wrapper.css(cssRet);
 	},
 
 	/**
